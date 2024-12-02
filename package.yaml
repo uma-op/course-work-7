@@ -35,6 +35,9 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - parsec
+  - containers
 
 executables:
   course-work-exe:
@@ -46,7 +49,6 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - course-work
-    - parsec
 
 tests:
   course-work-test:
