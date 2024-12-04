@@ -49,6 +49,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - course-work
+    - containers
 
 tests:
   course-work-test:

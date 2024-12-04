@@ -3,6 +3,8 @@ module Parser where
 import Text.ParserCombinators.Parsec
 import Formula
 
+import qualified Data.List as List
+
 {-
 
 disjunction ::= conjucntion disjunction'
@@ -52,7 +54,7 @@ variable :: GenParser Char st Formula
 variable =
   do
     _ <- string "_|_"
-    return Absurdity
+    return (Absurdity 0)
   <|>
   do
     _ <- char '('
@@ -63,17 +65,17 @@ variable =
   do
     first <- letter
     other <- many letter
-    return (Variable (first : other))
+    return (Variable 0 (first : other))
 
 negation :: GenParser Char st Formula
 negation =
   do
     _ <- negationOp
-    Negation <$> negation
+    neg <- negation
+    return (Negation (Formula.length neg + 1) neg)
   <|>
   do
     variable
-
 
 implication :: GenParser Char st Formula
 implication =
@@ -82,7 +84,7 @@ implication =
     other <- implication'
     case other of
       [] -> return neg
-      _nonEmpty -> return (Implication (neg : other))
+      _nonEmpty -> return (Implication (List.sum (List.map Formula.length (neg : other)) + List.length (neg : other) - 1) (neg : other))
   where
     implication' =
       do
@@ -99,7 +101,7 @@ conjunction =
     other <- conjunction'
     case other of
       [] -> return impl
-      _nonEmpty -> return (Conjunction (impl : other))
+      _nonEmpty -> return (Conjunction (List.sum (List.map Formula.length (impl : other)) + List.length (impl : other) - 1) (impl : other))
   where
     conjunction' =
       do
@@ -117,7 +119,7 @@ disjunction =
     other <- disjunction'
     case other of
       [] -> return conjunct
-      _nonEmpty -> return (Disjunction (conjunct : other))
+      _nonEmpty -> return (Disjunction (List.sum (List.map Formula.length (conjunct : other)) + List.length (conjunct : other) - 1) (conjunct : other))
   where
     disjunction' =
       do
