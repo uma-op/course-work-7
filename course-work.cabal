@@ -18,12 +18,14 @@ build-type:     Simple
 extra-source-files:
     README.md
     CHANGELOG.md
+data-files:
+    test/data/tautology.txt
 
 source-repository head
   type: git
   location: https://github.com/githubuser/course-work
 
-library
+library course-work-lib
   exposed-modules:
       Formula
       KripkeModel
@@ -33,12 +35,32 @@ library
   autogen-modules:
       Paths_course_work
   hs-source-dirs:
-      src
+      src/course-work-lib
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , containers
     , parsec
+  default-language: Haskell2010
+
+library testing-utils
+  exposed-modules:
+      TestingUtils
+  other-modules:
+      Paths_course_work
+  autogen-modules:
+      Paths_course_work
+  hs-source-dirs:
+      src/testing-utils
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      HUnit
+    , base >=4.7 && <5
+    , containers
+    , course-work-lib
+    , parsec
+    , test-framework
+    , test-framework-hunit
   default-language: Haskell2010
 
 executable course-work-exe
@@ -53,20 +75,45 @@ executable course-work-exe
   build-depends:
       base >=4.7 && <5
     , containers
-    , course-work
+    , course-work-lib
   default-language: Haskell2010
 
-test-suite course-work-test
+test-suite kripke-model-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
       Paths_course_work
   autogen-modules:
       Paths_course_work
   hs-source-dirs:
-      test
+      test/KripkeModelTest
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
-    , course-work
+      HUnit
+    , base >=4.7 && <5
+    , containers
+    , course-work-lib
+    , test-framework
+    , test-framework-hunit
+    , testing-utils
+  default-language: Haskell2010
+
+test-suite parser-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_course_work
+  autogen-modules:
+      Paths_course_work
+  hs-source-dirs:
+      test/ParserTest
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HUnit
+    , base >=4.7 && <5
+    , containers
+    , course-work-lib
+    , test-framework
+    , test-framework-hunit
+    , testing-utils
   default-language: Haskell2010
