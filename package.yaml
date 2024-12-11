@@ -62,16 +62,12 @@ executables:
     - containers
     
 data-files:
-- test/data/tautology.txt
+- test/data/*.txt
 
 tests:
   parser-test:
     main:		 Main.hs
     source-dirs:	 test/ParserTest
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - course-work-lib
     - testing-utils
@@ -84,10 +80,6 @@ tests:
   kripke-model-test:
     main:                Main.hs
     source-dirs:	 test/KripkeModelTest
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - course-work-lib
     - testing-utils
@@ -97,3 +89,18 @@ tests:
     - containers
     generated-other-modules:
     - Paths_course_work
+  formula-test:
+    main:                Main.hs
+    source-dirs:	 test/FormulaTest
+    dependencies:
+    - course-work-lib
+    - testing-utils
+    - HUnit
+    - test-framework
+    - test-framework-hunit
+    - containers
+    generated-other-modules:
+    - Paths_course_work
+  
+
+

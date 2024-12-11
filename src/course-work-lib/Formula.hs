@@ -3,6 +3,8 @@ module Formula where
 import qualified Data.Function as Function
 import qualified Data.List as List
 
+import qualified Data.Maybe as Maybe
+
 type Atom = String
 data Formula = Disjunction { length :: !Int, operands :: ![Formula] }
              | Conjunction { length :: !Int, operands :: ![Formula] }
@@ -42,3 +44,25 @@ instance Show Formula where
   show (Variable _ a) = a
   show (Absurdity _) = "_|_"
 
+paren :: Formula -> Formula
+paren (Disjunction _ ds) = Maybe.fromJust $ List.foldl foldingFunction Nothing parened
+  where
+    foldingFunction Nothing element = Just element
+    foldingFunction (Just container) element = Just $ disjunction [container, element]
+    parened = List.map paren ds
+
+paren (Conjunction _ cs) = Maybe.fromJust $ List.foldl foldingFunction Nothing parened
+  where
+    foldingFunction Nothing element = Just element
+    foldingFunction (Just container) element = Just $ conjunction [container, element]
+    parened = List.map paren cs
+
+paren (Implication _ is) = Maybe.fromJust $ List.foldr foldingFunction Nothing parened
+  where
+    foldingFunction element Nothing = Just element
+    foldingFunction element (Just container) = Just $ implication [element, container]
+    parened = List.map paren is
+
+
+-- Negation, variable and absurdity already have parens
+paren x = x

@@ -11,26 +11,28 @@ main :: IO ()
 main = defaultMain tests
 
 tests =
-  [ testGroup "Parsing"
+  [ testGroup "Put parens"
     [ testCase "Tautology" $
-      buildAssertion id
+      buildAssertion paren
       (implication [variable "a", negation $ negation $ variable "a"])
       "test/data/tautology.txt"
     , testCase "Axiom 1" $
-      buildAssertion id
-      (implication [variable "a", variable "b", variable "a"])
+      buildAssertion paren
+      (implication [variable "a", implication [variable "b", variable "a"]])
       "test/data/axiom-1.txt"
     , testCase "Axiom 2" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ implication [variable "a", variable "b"]
-       , implication [variable "a", variable "b", variable "c"]
-       , implication [variable "a", variable "c"]
+       , implication
+         [ implication [variable "a", implication [variable "b", variable "c"]]
+         , implication [variable "a", variable "c"]
+         ]
        ]
       )
       "test/data/axiom-2.txt"
     , testCase "Axiom 3" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ conjunction [variable "a", variable "b"]
        , variable "a"
@@ -38,20 +40,22 @@ tests =
       )
       "test/data/axiom-3.txt"
     , testCase "Axiom 4" $
-      buildAssertion id
+      buildAssertion paren
       (implication [conjunction [variable "a", variable "b"], variable "b"])
       "test/data/axiom-4.txt"
     , testCase "Axiom 5" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ variable "a"
-       , variable "b"
-       , conjunction [variable "a", variable "b"]
+       , implication
+         [ variable "b"
+         , conjunction [variable "a", variable "b"]
+         ]
        ]
       )
       "test/data/axiom-5.txt"
     , testCase "Axiom 6" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ variable "a"
        , disjunction [variable "a", variable "b"]
@@ -59,7 +63,7 @@ tests =
       )
       "test/data/axiom-6.txt"
     , testCase "Axiom 7" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ variable "b"
        , disjunction [variable "a", variable "b"]
@@ -67,30 +71,38 @@ tests =
       )
       "test/data/axiom-7.txt"
     , testCase "Axiom 8" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ implication [variable "a", variable "c"]
-       , implication [variable "b", variable "c"]
-       , disjunction [variable "a", variable "b"]
-       , variable "c"
+       , implication
+         [ implication [variable "b", variable "c"]
+         , implication
+           [ disjunction [variable "a", variable "b"]
+           , variable "c"
+           ]
+         ]
        ]
       )
       "test/data/axiom-8.txt"
     , testCase "Axiom 9" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ implication [variable "a", variable "b"]
-       , implication [variable "a", negation $ variable "b"]
-       , negation $ variable "a"
+       , implication
+         [ implication [variable "a", negation $ variable "b"]
+         , negation $ variable "a"
+         ]
        ]
       )
       "test/data/axiom-9.txt"
     , testCase "Axiom 10" $
-      buildAssertion id
+      buildAssertion paren
       (implication
        [ variable "a"
-       , negation $ variable "a"
-       , variable "b"
+       , implication
+         [negation $ variable "a"
+         , variable "b"
+         ]
        ]
       )
       "test/data/axiom-10.txt"
