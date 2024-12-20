@@ -33,11 +33,21 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
-library:
-  source-dirs: src
-  dependencies:
-  - parsec
-  - containers
+internal-libraries:
+  course-work-lib:
+    source-dirs: src/course-work-lib
+    dependencies:
+    - parsec
+    - containers
+  testing-utils:
+    source-dirs: src/testing-utils
+    dependencies:
+    - course-work-lib
+    - parsec
+    - containers
+    - test-framework
+    - test-framework-hunit
+    - HUnit
 
 executables:
   course-work-exe:
@@ -48,15 +58,49 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - course-work
+    - course-work-lib
+    - containers
+    
+data-files:
+- test/data/*.txt
 
 tests:
-  course-work-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+  parser-test:
+    main:		 Main.hs
+    source-dirs:	 test/ParserTest
     dependencies:
-    - course-work
+    - course-work-lib
+    - testing-utils
+    - HUnit
+    - test-framework
+    - test-framework-hunit
+    - containers
+    generated-other-modules:
+    - Paths_course_work
+  kripke-model-test:
+    main:                Main.hs
+    source-dirs:	 test/KripkeModelTest
+    dependencies:
+    - course-work-lib
+    - testing-utils
+    - HUnit
+    - test-framework
+    - test-framework-hunit
+    - containers
+    generated-other-modules:
+    - Paths_course_work
+  formula-test:
+    main:                Main.hs
+    source-dirs:	 test/FormulaTest
+    dependencies:
+    - course-work-lib
+    - testing-utils
+    - HUnit
+    - test-framework
+    - test-framework-hunit
+    - containers
+    generated-other-modules:
+    - Paths_course_work
+  
+
+

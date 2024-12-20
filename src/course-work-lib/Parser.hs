@@ -1,8 +1,9 @@
 module Parser where
 
 import Text.ParserCombinators.Parsec
-import Formula
 
+import Formula(Formula)
+import qualified Formula
 {-
 
 disjunction ::= conjucntion disjunction'
@@ -18,6 +19,9 @@ variable ::= [a-z]+ | (disjunction)
 
 data ParsingStatus = Done | Continue
 
+parseLogicalFormula :: [Char] -> Either ParseError Formula
+parseLogicalFormula = parse disjunction "(unknown)"
+
 buildParseInput :: String -> String -> (String, ParsingStatus)
 buildParseInput other "\n" = (other, Done)
 buildParseInput other new = (other ++ new, Continue)
@@ -28,7 +32,6 @@ readFormula =
     input <- readParseInput ""
     return (parseLogicalFormula (filter (' ' /=) $ filter ('\n' /=) input))
   where
-    parseLogicalFormula = parse disjunction "(unknown)"
     readParseInput readed =
       do
         new <- getLine
@@ -52,7 +55,7 @@ variable :: GenParser Char st Formula
 variable =
   do
     _ <- string "_|_"
-    return Absurdity
+    return Formula.absurdity
   <|>
   do
     _ <- char '('
@@ -63,17 +66,16 @@ variable =
   do
     first <- letter
     other <- many letter
-    return (Variable (first : other))
+    return $ Formula.variable (first : other)
 
 negation :: GenParser Char st Formula
 negation =
   do
     _ <- negationOp
-    Negation <$> negation
+    Formula.negation <$> negation
   <|>
   do
     variable
-
 
 implication :: GenParser Char st Formula
 implication =
@@ -82,7 +84,7 @@ implication =
     other <- implication'
     case other of
       [] -> return neg
-      _nonEmpty -> return (Implication (neg : other))
+      _nonEmpty -> return $ Formula.implication (neg : other)
   where
     implication' =
       do
@@ -99,7 +101,7 @@ conjunction =
     other <- conjunction'
     case other of
       [] -> return impl
-      _nonEmpty -> return (Conjunction (impl : other))
+      _nonEmpty -> return $ Formula.conjunction (impl : other)
   where
     conjunction' =
       do
@@ -117,7 +119,7 @@ disjunction =
     other <- disjunction'
     case other of
       [] -> return conjunct
-      _nonEmpty -> return (Disjunction (conjunct : other))
+      _nonEmpty -> return $ Formula.disjunction (conjunct : other)
   where
     disjunction' =
       do
