@@ -19,6 +19,7 @@ extra-source-files:
     README.md
     CHANGELOG.md
 data-files:
+    test/data/another-tautology.txt
     test/data/axiom-1.txt
     test/data/axiom-10.txt
     test/data/axiom-2.txt
@@ -30,6 +31,9 @@ data-files:
     test/data/axiom-8.txt
     test/data/axiom-9.txt
     test/data/long-implication.txt
+    test/data/negation.txt
+    test/data/not-tautology.txt
+    test/data/simple.txt
     test/data/tautology.txt
 
 source-repository head

@@ -8,8 +8,9 @@ import Test.Framework.Providers.HUnit
 import TestingUtils (buildAssertion)
 
 import Formula
-import KripkeModel (decomposeFormula)
+import KripkeModel (decomposeFormula, KripkeModel (..), derivable)
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 main :: IO ()
 main = defaultMain tests
@@ -125,5 +126,62 @@ tests =
        ]
       )
       "test/data/long-implication.txt"
+    ],
+    testGroup "Formula derivation"
+    [ testCase "Simple" $
+      buildAssertion (derivable ( KripkeModel
+                                  { worlds = Set.fromList [ 1 ]
+                                  , order = Set.empty
+                                  , valuation = Map.fromList [((1, "a"), False)]
+                                  }
+                                ))
+      False
+      "test/data/simple.txt"
+    , testCase "Negation" $
+      buildAssertion (derivable ( KripkeModel
+                                  { worlds = Set.fromList [ 1, 2 ]
+                                  , order = Set.fromList [ (1, 2) ]
+                                  , valuation =
+                                      Map.fromList
+                                      [ ((1, "a"), False)
+                                      , ((2, "a"), True)
+                                      ]
+                                  
+                                  }
+                                ))
+      False
+      "test/data/negation.txt"
+    , testCase "Non tautology" $
+      buildAssertion (derivable ( KripkeModel
+                                  { worlds = Set.fromList [ 1, 2 ]
+                                  , order = Set.fromList [ (1, 2) ]
+                                  , valuation =
+                                      Map.fromList
+                                      [ ((1, "a"), False)
+                                      , ((2, "a"), True)
+                                      ]
+                                  }
+                                ))
+      False
+      "test/data/not-tautology.txt"
+    , testCase "Another tautology" $
+      buildAssertion (derivable ( KripkeModel
+                                  { worlds = Set.fromList [ 1, 2, 3, 4 ]
+                                  , order = Set.fromList [ (1, 2), (1, 3), (2, 4), (3, 4) ]
+                                  , valuation =
+                                      Map.fromList
+                                      [ ((1, "a"), False)
+                                      , ((1, "b"), True)
+                                      , ((2, "a"), False)
+                                      , ((2, "b"), True)
+                                      , ((3, "a"), False)
+                                      , ((3, "b"), True)
+                                      , ((4, "a"), False)
+                                      , ((4, "b"), True)
+                                      ]
+                                  }
+                                ))
+      True
+      "test/data/another-tautology.txt"
     ]
   ]
