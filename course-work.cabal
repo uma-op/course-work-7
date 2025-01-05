@@ -45,6 +45,9 @@ library course-work-lib
       Formula
       KripkeModel
       Parser
+      Prover.DerivationTree
+      Prover.Prover
+      Prover.Sequent
   other-modules:
       Paths_course_work
   autogen-modules:

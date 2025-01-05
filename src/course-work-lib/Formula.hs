@@ -6,6 +6,15 @@ import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
 type Atom = String
+
+data FormulaType = DisjunctionType
+                 | ConjunctionType
+                 | ImplicationType
+                 | NegationType
+                 | VariableType
+                 | AbsurdityType
+                 deriving Eq
+
 data Formula = Disjunction { length :: !Int, operands :: ![Formula] }
              | Conjunction { length :: !Int, operands :: ![Formula] }
              | Implication { length :: !Int, operands :: ![Formula] }
@@ -31,6 +40,14 @@ variable = Variable 0
 
 absurdity :: Formula
 absurdity = Absurdity 0
+
+getFormulaType :: Formula -> FormulaType
+getFormulaType (Disjunction _ _) = DisjunctionType
+getFormulaType (Conjunction _ _) = ConjunctionType
+getFormulaType (Implication _ _) = ImplicationType
+getFormulaType (Negation _ _) = NegationType
+getFormulaType (Variable _ _) = VariableType
+getFormulaType (Absurdity _) = AbsurdityType
 
 instance Ord Formula where
   compare f1 f2 | Formula.length f1 == Formula.length f2 = Function.on compare show f1 f2
