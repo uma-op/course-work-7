@@ -32,6 +32,7 @@ data-files:
     test/data/axiom-9.txt
     test/data/long-implication.txt
     test/data/negation.txt
+    test/data/not-tautology-1.txt
     test/data/not-tautology.txt
     test/data/simple.txt
     test/data/tautology.txt
@@ -59,6 +60,8 @@ library course-work-lib
       base >=4.7 && <5
     , containers
     , parsec
+    , pretty-simple
+    , text
   default-language: Haskell2010
 
 library testing-utils
@@ -145,6 +148,26 @@ test-suite parser-test
       Paths_course_work
   hs-source-dirs:
       test/ParserTest
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      HUnit
+    , base >=4.7 && <5
+    , containers
+    , course-work-lib
+    , test-framework
+    , test-framework-hunit
+    , testing-utils
+  default-language: Haskell2010
+
+test-suite prover-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_course_work
+  autogen-modules:
+      Paths_course_work
+  hs-source-dirs:
+      test/ProverTest
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       HUnit

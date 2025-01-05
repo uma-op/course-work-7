@@ -2,6 +2,8 @@ module Formula where
 
 import qualified Data.Function as Function
 import qualified Data.List as List
+import qualified Data.Set as Set
+import Data.Set (Set)
 
 import qualified Data.Maybe as Maybe
 
@@ -83,3 +85,14 @@ paren (Implication _ is) = Maybe.fromJust $ List.foldr foldingFunction Nothing p
 
 -- Negation, variable and absurdity already have parens
 paren x = x
+
+atoms :: Formula -> Set Atom
+atoms formula = atoms' [formula] Set.empty
+  where
+    atoms' [] result = result
+    atoms' (h:t) result =
+      case h of
+        Variable _ a -> atoms' t $ Set.insert a result
+        Absurdity _ -> atoms' t $ Set.insert "_|_" result
+        Negation _ f -> atoms' (f:t) result
+        other -> atoms' (operands other ++ t) result

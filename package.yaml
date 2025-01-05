@@ -39,6 +39,8 @@ internal-libraries:
     dependencies:
     - parsec
     - containers
+    - pretty-simple
+    - text
   testing-utils:
     source-dirs: src/testing-utils
     dependencies:
@@ -101,6 +103,17 @@ tests:
     - containers
     generated-other-modules:
     - Paths_course_work
-  
+  prover-test:
+    main:                Main.hs
+    source-dirs:	 test/ProverTest
+    dependencies:
+    - course-work-lib
+    - testing-utils
+    - HUnit
+    - test-framework
+    - test-framework-hunit
+    - containers
 
+    generated-other-modules:
+    - Paths_course_work
 
