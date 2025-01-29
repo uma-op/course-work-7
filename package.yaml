@@ -113,6 +113,8 @@ tests:
     - test-framework
     - test-framework-hunit
     - containers
+    - pretty-simple
+    - text    
 
     generated-other-modules:
     - Paths_course_work
