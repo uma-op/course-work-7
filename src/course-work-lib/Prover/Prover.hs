@@ -14,7 +14,6 @@ import KripkeModel (KripkeModel (..))
 import Prover.DerivationTree
 import Prover.Sequent
 import Text.Pretty.Simple (pShow)
-import qualified Debug.Trace as Trace
 import Data.Text.Lazy (unpack)
 
 buildCounterModel :: DerivationTree -> KripkeModel
@@ -22,8 +21,7 @@ buildCounterModel tree@(DerivationTree {currentGoal = Nothing}) = undefined
 buildCounterModel tree = model
   where
     failedGoalId = currentGoal tree
-    failedGoal' = nodes tree Map.! Maybe.fromJust failedGoalId
-    failedGoal = Trace.trace (unpack $ pShow failedGoal') failedGoal'
+    failedGoal = nodes tree Map.! Maybe.fromJust failedGoalId
     model =
       KripkeModel
         { worlds = Set.fromList listedWorlds,
@@ -59,26 +57,26 @@ buildDerivationTree formula =
     buildDerivationTree' = applyAxiom
       where
         applyAxiom tree =
-          case Trace.trace "Axiom" $ axiom tree of
+          case axiom tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyRight oldTree
 
         applyRight tree =
-          case Trace.trace "Right" $ right tree of
+          case right tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyFocus oldTree
 
         applyFocus tree =
-          case Trace.trace "Focus" $ focus tree of
+          case focus tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyLeft oldTree
 
         applyLeft tree =
-          case Trace.trace "Left" $ left tree of
+          case left tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyRestart oldTree
 
         applyRestart tree =
-          case Trace.trace "Restart" $ restart tree of
+          case restart tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> oldTree

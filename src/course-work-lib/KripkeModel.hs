@@ -71,13 +71,13 @@ derivable model f = List.all ((derivableValue Map.!) . (,f)) (Set.toList $ world
       Map (World, Formula) Bool
     derivable' worldMap formula =
       case formula of
-        Disjunction _ [f1, f2] ->
+        Disjunction _ f1 f2 ->
           let newWorldMap = getNewWorldMap [f1, f2]
            in Set.foldl (foldingFunction (\w -> (newWorldMap Map.! (w, f1)) || (newWorldMap Map.! (w, f2)))) newWorldMap $ worlds model
-        Conjunction _ [f1, f2] ->
+        Conjunction _ f1 f2 ->
           let newWorldMap = getNewWorldMap [f1, f2]
            in Set.foldl (foldingFunction (\w -> (newWorldMap Map.! (w, f1)) && (newWorldMap Map.! (w, f2)))) newWorldMap $ worlds model
-        Implication _ [f1, f2] ->
+        Implication _ f1 f2 ->
           let newWorldMap = getNewWorldMap [f1, f2]
            in Set.foldl (foldingFunction (\w -> not (newWorldMap Map.! (w, f1)) || (newWorldMap Map.! (w, f2)))) newWorldMap $ worlds model
         Negation _ n ->
@@ -103,10 +103,10 @@ derivable model f = List.all ((derivableValue Map.!) . (,f)) (Set.toList $ world
         decomposed
 
 decomposeFormula :: Formula -> Set Formula
-decomposeFormula f = decomposeFormula' $ Formula.paren f
+decomposeFormula = decomposeFormula'
   where
     decomposeFormula' :: Formula -> Set Formula
     decomposeFormula' (Negation l n) = Set.insert (Negation l n) (decomposeFormula' n)
     decomposeFormula' (Variable l a) = Set.singleton (Variable l a)
     decomposeFormula' (Absurdity l) = Set.singleton (Absurdity l)
-    decomposeFormula' p = Set.insert p $ Set.unions $ List.map decomposeFormula' $ operands p
+    decomposeFormula' p = Set.insert p $ Set.union (decomposeFormula' $ lhs p) (decomposeFormula' $ rhs p)

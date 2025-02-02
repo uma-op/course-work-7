@@ -1,9 +1,10 @@
 module Parser where
 
+import qualified Data.List as List
+import Formula (Formula)
+import qualified Formula
 import Text.ParserCombinators.Parsec
 
-import Formula(Formula)
-import qualified Formula
 {-
 
 disjunction ::= conjucntion disjunction'
@@ -56,26 +57,23 @@ variable =
   do
     _ <- string "_|_"
     return Formula.absurdity
-  <|>
-  do
-    _ <- char '('
-    disjunct <- disjunction
-    _ <- char ')'
-    return disjunct
-  <|>
-  do
-    first <- letter
-    other <- many letter
-    return $ Formula.variable (first : other)
+    <|> do
+      _ <- char '('
+      disjunct <- disjunction
+      _ <- char ')'
+      return disjunct
+    <|> do
+      first <- letter
+      other <- many letter
+      return $ Formula.variable (first : other)
 
 negation :: GenParser Char st Formula
 negation =
   do
     _ <- negationOp
     Formula.negation <$> negation
-  <|>
-  do
-    variable
+    <|> do
+      variable
 
 implication :: GenParser Char st Formula
 implication =
@@ -84,7 +82,9 @@ implication =
     other <- implication'
     case other of
       [] -> return neg
-      _nonEmpty -> return $ Formula.implication (neg : other)
+      _nonEmpty ->
+        return $
+          Formula.implication (neg : other)
   where
     implication' =
       do
@@ -92,7 +92,7 @@ implication =
         neg <- negation
         other <- implication'
         return (neg : other)
-      <|> return []
+        <|> return []
 
 conjunction :: GenParser Char st Formula
 conjunction =
@@ -101,7 +101,9 @@ conjunction =
     other <- conjunction'
     case other of
       [] -> return impl
-      _nonEmpty -> return $ Formula.conjunction (impl : other)
+      _nonEmpty ->
+        return $
+          Formula.conjunction (impl : other)
   where
     conjunction' =
       do
@@ -109,8 +111,7 @@ conjunction =
         impl <- implication
         other <- conjunction'
         return (impl : other)
-      <|> return []
-        
+        <|> return []
 
 disjunction :: GenParser Char st Formula
 disjunction =
@@ -119,7 +120,9 @@ disjunction =
     other <- disjunction'
     case other of
       [] -> return conjunct
-      _nonEmpty -> return $ Formula.disjunction (conjunct : other)
+      _nonEmpty ->
+        return $
+          Formula.disjunction (conjunct : other)
   where
     disjunction' =
       do
@@ -127,5 +130,4 @@ disjunction =
         conjunct <- conjunction
         other <- disjunction'
         return (conjunct : other)
-      <|> return []
-
+        <|> return []

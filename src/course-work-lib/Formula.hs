@@ -2,97 +2,117 @@ module Formula where
 
 import qualified Data.Function as Function
 import qualified Data.List as List
-import qualified Data.Set as Set
-import Data.Set (Set)
-
 import qualified Data.Maybe as Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 type Atom = String
 
-data FormulaType = DisjunctionType
-                 | ConjunctionType
-                 | ImplicationType
-                 | NegationType
-                 | VariableType
-                 | AbsurdityType
-                 deriving Eq
+data FormulaType
+  = DisjunctionType
+  | ConjunctionType
+  | ImplicationType
+  | NegationType
+  | VariableType
+  | AbsurdityType
+  deriving (Eq)
 
-data Formula = Disjunction { length :: !Int, operands :: ![Formula] }
-             | Conjunction { length :: !Int, operands :: ![Formula] }
-             | Implication { length :: !Int, operands :: ![Formula] }
-             | Negation { length :: !Int, operand :: !Formula }
-             | Variable { length :: !Int, atom :: !Atom }
-             | Absurdity { length :: !Int }
-             deriving Eq
+data Formula
+  = Disjunction {length :: !Int, lhs :: !Formula, rhs :: !Formula}
+  | Conjunction {length :: !Int, lhs :: !Formula, rhs :: !Formula}
+  | Implication {length :: !Int, lhs :: !Formula, rhs :: !Formula}
+  | Negation {length :: !Int, operand :: !Formula}
+  | Variable {length :: !Int, atom :: !Atom}
+  | Absurdity {length :: !Int}
+  deriving (Eq)
 
 disjunction :: [Formula] -> Formula
-disjunction ds = Disjunction (List.length ds - 1 + List.sum (List.map Formula.length ds)) ds
+disjunction [] = error "Empty list of disjuncts"
+disjunction [d] = d
+disjunction (dh : dt) = adjustLength $ List.foldl (Disjunction 0) dh dt
 
 conjunction :: [Formula] -> Formula
-conjunction cs = Conjunction (List.length cs - 1 + List.sum (List.map Formula.length cs)) cs
+conjunction [] = error "Empty list of conjuncts"
+conjunction [c] = c
+conjunction (ch : ct) = adjustLength $ List.foldl (Conjunction 0) ch ct
 
 implication :: [Formula] -> Formula
-implication is = Implication (List.length is - 1 + List.sum (List.map Formula.length is)) is
+implication [] = error "Empty list of implication operands"
+implication [i] = i
+implication is = adjustLength $ List.foldr (Implication 0) initial toFold
+  where
+    reversed = reverse is
+    initial = head reversed
+    toFold = reverse $ tail reversed
+
+adjustLength :: Formula -> Formula
+adjustLength f
+  | formulaType == DisjunctionType || formulaType == ConjunctionType || formulaType == ImplicationType =
+      let adjustedLhs = adjustLength $ lhs f
+          adjustedRhs = adjustLength $ rhs f
+       in f
+            { Formula.length = Formula.length adjustedLhs + Formula.length adjustedRhs + 1,
+              Formula.lhs = adjustedLhs,
+              Formula.rhs = adjustedRhs
+            }
+  | formulaType == NegationType =
+      let adjustedOperand = adjustLength $ operand f
+       in f
+            { Formula.length = Formula.length adjustedOperand + 1,
+              Formula.operand = adjustedOperand
+            }
+  | otherwise = f {Formula.length = 0}
+  where
+    formulaType = getFormulaType f
 
 negation :: Formula -> Formula
-negation f = Negation (Formula.length f + 1) f
+negation f =
+  Negation
+    { Formula.length = Formula.length f + 1,
+      Formula.operand = f
+    }
 
 variable :: Atom -> Formula
-variable = Variable 0
+variable a =
+  Variable
+    { Formula.length = 0,
+      Formula.atom = a
+    }
 
 absurdity :: Formula
-absurdity = Absurdity 0
+absurdity =
+  Absurdity
+    { Formula.length = 0
+    }
 
 getFormulaType :: Formula -> FormulaType
-getFormulaType (Disjunction _ _) = DisjunctionType
-getFormulaType (Conjunction _ _) = ConjunctionType
-getFormulaType (Implication _ _) = ImplicationType
-getFormulaType (Negation _ _) = NegationType
-getFormulaType (Variable _ _) = VariableType
-getFormulaType (Absurdity _) = AbsurdityType
+getFormulaType Disjunction {} = DisjunctionType
+getFormulaType Conjunction {} = ConjunctionType
+getFormulaType Implication {} = ImplicationType
+getFormulaType Negation {} = NegationType
+getFormulaType Variable {} = VariableType
+getFormulaType Absurdity {} = AbsurdityType
 
 instance Ord Formula where
-  compare f1 f2 | Formula.length f1 == Formula.length f2 = Function.on compare show f1 f2
-                | otherwise = Function.on compare Formula.length f1 f2
+  compare f1 f2
+    | Formula.length f1 == Formula.length f2 = Function.on compare show f1 f2
+    | otherwise = Function.on compare Formula.length f1 f2
 
 instance Show Formula where
-  show (Disjunction _ (hfs : tfs)) = "(" ++ show hfs ++ concatMap (\e -> " \\/ " ++ show e) tfs ++ ")"
-  show (Conjunction _ (hfs : tfs)) = "(" ++ show hfs ++ concatMap (\e -> " /\\ " ++ show e) tfs ++ ")"
-  show (Implication _ (hfs : tfs)) = "(" ++ show hfs ++ concatMap (\e -> " -> " ++ show e) tfs ++ ")"
+  show (Disjunction _ lhs rhs) = "(" ++ show lhs ++ " \\/ " ++ show rhs ++ ")"
+  show (Conjunction _ lhs rhs) = "(" ++ show lhs ++ " /\\ " ++ show rhs ++ ")"
+  show (Implication _ lhs rhs) = "(" ++ show lhs ++ " -> " ++ show rhs ++ ")"
   show (Negation _ f) = "-" ++ show f
   show (Variable _ a) = a
   show (Absurdity _) = "_|_"
-
-paren :: Formula -> Formula
-paren (Disjunction _ ds) = Maybe.fromJust $ List.foldl foldingFunction Nothing parened
-  where
-    foldingFunction Nothing element = Just element
-    foldingFunction (Just container) element = Just $ disjunction [container, element]
-    parened = List.map paren ds
-
-paren (Conjunction _ cs) = Maybe.fromJust $ List.foldl foldingFunction Nothing parened
-  where
-    foldingFunction Nothing element = Just element
-    foldingFunction (Just container) element = Just $ conjunction [container, element]
-    parened = List.map paren cs
-
-paren (Implication _ is) = Maybe.fromJust $ List.foldr foldingFunction Nothing parened
-  where
-    foldingFunction element Nothing = Just element
-    foldingFunction element (Just container) = Just $ implication [element, container]
-    parened = List.map paren is
-
-
--- Negation, variable and absurdity already have parens
-paren x = x
 
 atoms :: Formula -> Set Atom
 atoms formula = atoms' [formula] Set.empty
   where
     atoms' [] result = result
-    atoms' (h:t) result =
+    atoms' (h : t) result =
       case h of
         Variable _ a -> atoms' t $ Set.insert a result
         Absurdity _ -> atoms' t $ Set.insert "_|_" result
-        Negation _ f -> atoms' (f:t) result
-        other -> atoms' (operands other ++ t) result
+        Negation _ f -> atoms' (f : t) result
+        _other -> atoms' (lhs h : rhs h : t) result

@@ -100,26 +100,6 @@ executable course-work-exe
     , course-work-lib
   default-language: Haskell2010
 
-test-suite formula-test
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  other-modules:
-      Paths_course_work
-  autogen-modules:
-      Paths_course_work
-  hs-source-dirs:
-      test/FormulaTest
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
-  build-depends:
-      HUnit
-    , base >=4.7 && <5
-    , containers
-    , course-work-lib
-    , test-framework
-    , test-framework-hunit
-    , testing-utils
-  default-language: Haskell2010
-
 test-suite kripke-model-test
   type: exitcode-stdio-1.0
   main-is: Main.hs

@@ -4,11 +4,9 @@ import qualified Data.List as List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
-import Data.Sequence (Seq (..))
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Debug.Trace as Trace
-import Formula
+import qualified Formula
 import Prover.Sequent
 
 data RuleType = Axiom | Focus | Restart | Right | Left deriving (Show)
@@ -57,8 +55,7 @@ axiom tree =
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal' = nodes tree Map.! goalId
-    goal = Trace.trace (show goal') goal'
+    goal = nodes tree Map.! goalId
 
 focus :: DerivationTree -> (DerivationTree, Bool)
 focus tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -71,8 +68,7 @@ focus tree =
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal' = nodes tree Map.! goalId
-    goal = Trace.trace (show goal') goal'
+    goal = nodes tree Map.! goalId
 
 restart :: DerivationTree -> (DerivationTree, Bool)
 restart tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -84,13 +80,13 @@ restart tree =
               { usedContexts = Set.empty,
                 leftFocus = Set.empty,
                 leftLabeled =
-                  Map.adjust (++ leftUnlabeled goal) (atom $ rightFormula goal) $
+                  Map.adjust (++ leftUnlabeled goal) (Formula.atom $ rightFormula goal) $
                     Map.adjust (const []) used $
                       leftLabeled goal,
                 leftUnlabeled = unlabeled,
                 rightFocusUsed = Set.insert used $ rightFocusUsed goal,
                 rightFocus = unused,
-                rightFormula = variable used
+                rightFormula = Formula.variable used
               }
             where
               (used, unused) = Set.deleteFindMin $ rightFocus goal
@@ -102,15 +98,14 @@ restart tree =
       (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal' = nodes tree Map.! goalId
-    goal = Trace.trace (show goal') goal'
+    goal = nodes tree Map.! goalId
 
 right :: DerivationTree -> (DerivationTree, Bool)
 right tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
 right tree =
-  if getFormulaType (rightFormula goal) == ImplicationType
+  if Formula.getFormulaType (rightFormula goal) == Formula.ImplicationType
     then
-      let [lhs, rhs] = Formula.operands $ rightFormula goal -- implication type means implication with two operands
+      let (Formula.Implication _ lhs rhs) = rightFormula goal -- implication type means implication with two operands
           newSequent =
             goal
               { leftUnlabeled = lhs : leftUnlabeled goal, -- TODO: check the append ordering
@@ -121,8 +116,7 @@ right tree =
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal' = nodes tree Map.! goalId
-    goal = Trace.trace (show goal') goal'
+    goal = nodes tree Map.! goalId
 
 left :: DerivationTree -> (DerivationTree, Bool)
 left tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -130,24 +124,25 @@ left tree =
   if Maybe.isJust leftmost
     then
       let formula = Maybe.fromJust leftmost
-          [lhs, rhs] = Formula.operands formula
+          lhs = Formula.lhs formula
+          rhs = Formula.rhs formula
           newSequentLeft =
             goal
-              { usedContexts = Set.insert (formula, atom $ rightFormula goal) $ usedContexts goal,
+              { usedContexts = Set.insert (formula, Formula.atom $ rightFormula goal) $ usedContexts goal,
                 leftLabeled =
                   Map.adjust
                     (++ leftUnlabeled goal)
-                    (atom $ rightFormula goal)
+                    (Formula.atom $ rightFormula goal)
                     (leftLabeled goal),
                 rightFocus =
-                  if Set.member (atom $ rightFormula goal) (rightFocusUsed goal)
+                  if Set.member (Formula.atom $ rightFormula goal) (rightFocusUsed goal)
                     then rightFocus goal
-                    else Set.insert (atom $ rightFormula goal) (rightFocus goal),
+                    else Set.insert (Formula.atom $ rightFormula goal) (rightFocus goal),
                 rightFormula = lhs
               }
           newSequentRight =
             goal
-              { usedContexts = Set.insert (formula, atom $ rightFormula goal) $ usedContexts goal,
+              { usedContexts = Set.insert (formula, Formula.atom $ rightFormula goal) $ usedContexts goal,
                 leftUnlabeled = rhs : leftUnlabeled goal
               }
           newTree =
@@ -159,13 +154,12 @@ left tree =
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal' = nodes tree Map.! goalId
-    goal = Trace.trace (show goal') goal'
+    goal = nodes tree Map.! goalId
     leftmost = List.find leftmostFindFunc (leftFocus goal)
       where
         leftmostFindFunc f
-          | getFormulaType f == ImplicationType =
+          | Formula.getFormulaType f == Formula.ImplicationType =
               not $
-                (f, atom $ rightFormula goal)
+                (f, Formula.atom $ rightFormula goal)
                   `Set.member` usedContexts goal
           | otherwise = False
