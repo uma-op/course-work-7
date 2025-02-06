@@ -84,7 +84,6 @@ derivable model f = List.all ((derivableValue Map.!) . (,f)) (Set.toList $ world
           let newWorldMap = getNewWorldMap [n]; derivableValue = List.and $ Set.map (not . (newWorldMap Map.!) . (,n)) $ maxWorlds model
            in Set.foldl (flip $ flip Map.insert derivableValue) newWorldMap $ Set.map (,formula) (worlds model)
         Variable _ _ -> worldMap
-        Absurdity _ -> worldMap
       where
         foldingFunction :: (World -> Bool) -> Map (World, Formula) Bool -> World -> Map (World, Formula) Bool
         foldingFunction isDerivableInWorld container element = Map.insert (element, formula) (isDerivableInWorld element) container
@@ -108,5 +107,4 @@ decomposeFormula = decomposeFormula'
     decomposeFormula' :: Formula -> Set Formula
     decomposeFormula' (Negation l n) = Set.insert (Negation l n) (decomposeFormula' n)
     decomposeFormula' (Variable l a) = Set.singleton (Variable l a)
-    decomposeFormula' (Absurdity l) = Set.singleton (Absurdity l)
     decomposeFormula' p = Set.insert p $ Set.union (decomposeFormula' $ lhs p) (decomposeFormula' $ rhs p)

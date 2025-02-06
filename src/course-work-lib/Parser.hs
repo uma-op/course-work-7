@@ -1,6 +1,5 @@
 module Parser where
 
-import qualified Data.List as List
 import Formula (Formula)
 import qualified Formula
 import Text.ParserCombinators.Parsec

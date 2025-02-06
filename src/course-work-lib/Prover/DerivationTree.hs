@@ -43,7 +43,7 @@ addSequent goalId s rt tree =
 axiom :: DerivationTree -> (DerivationTree, Bool)
 axiom tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
 axiom tree =
-  if rightFormula goal `Set.member` leftFocus goal
+  if rightFormula goal `Set.member` leftFocus goal || Formula.absurdity `Set.member` leftFocus goal
     then
       let newGoals = Set.delete goalId (goals tree)
           newTree =
@@ -62,7 +62,7 @@ focus tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
 focus tree =
   if not (List.all (`Set.member` leftFocus goal) (leftUnlabeled goal))
     then
-      let newSequent = goal {leftFocus = Set.fromList $ leftUnlabeled goal}
+      let newSequent = goal {leftFocus = leftUnlabeled goal}
           newTree = addSequent goalId newSequent Prover.DerivationTree.Focus tree
        in (newTree, True)
     else (tree, False)
@@ -80,8 +80,8 @@ restart tree =
               { usedContexts = Set.empty,
                 leftFocus = Set.empty,
                 leftLabeled =
-                  Map.adjust (++ leftUnlabeled goal) (Formula.atom $ rightFormula goal) $
-                    Map.adjust (const []) used $
+                  Map.adjust (`Set.union` leftUnlabeled goal) (Formula.atom $ rightFormula goal) $
+                    Map.adjust (const Set.empty) used $
                       leftLabeled goal,
                 leftUnlabeled = unlabeled,
                 rightFocusUsed = Set.insert used $ rightFocusUsed goal,
@@ -108,7 +108,7 @@ right tree =
       let (Formula.Implication _ lhs rhs) = rightFormula goal -- implication type means implication with two operands
           newSequent =
             goal
-              { leftUnlabeled = lhs : leftUnlabeled goal, -- TODO: check the append ordering
+              { leftUnlabeled = Set.insert lhs $ leftUnlabeled goal, -- TODO: check the append ordering
                 rightFormula = rhs
               }
           newTree = addSequent goalId newSequent Prover.DerivationTree.Right tree
@@ -131,7 +131,7 @@ left tree =
               { usedContexts = Set.insert (formula, Formula.atom $ rightFormula goal) $ usedContexts goal,
                 leftLabeled =
                   Map.adjust
-                    (++ leftUnlabeled goal)
+                    (`Set.union` leftUnlabeled goal)
                     (Formula.atom $ rightFormula goal)
                     (leftLabeled goal),
                 rightFocus =
@@ -143,7 +143,7 @@ left tree =
           newSequentRight =
             goal
               { usedContexts = Set.insert (formula, Formula.atom $ rightFormula goal) $ usedContexts goal,
-                leftUnlabeled = rhs : leftUnlabeled goal
+                leftUnlabeled = Set.insert rhs $ leftUnlabeled goal
               }
           newTree =
             ( addSequent goalId newSequentLeft Prover.DerivationTree.Left

@@ -2,7 +2,6 @@ module Formula where
 
 import qualified Data.Function as Function
 import qualified Data.List as List
-import qualified Data.Maybe as Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -14,7 +13,6 @@ data FormulaType
   | ImplicationType
   | NegationType
   | VariableType
-  | AbsurdityType
   deriving (Eq)
 
 data Formula
@@ -23,7 +21,6 @@ data Formula
   | Implication {length :: !Int, lhs :: !Formula, rhs :: !Formula}
   | Negation {length :: !Int, operand :: !Formula}
   | Variable {length :: !Int, atom :: !Atom}
-  | Absurdity {length :: !Int}
   deriving (Eq)
 
 disjunction :: [Formula] -> Formula
@@ -80,10 +77,7 @@ variable a =
     }
 
 absurdity :: Formula
-absurdity =
-  Absurdity
-    { Formula.length = 0
-    }
+absurdity = variable "_|_"
 
 getFormulaType :: Formula -> FormulaType
 getFormulaType Disjunction {} = DisjunctionType
@@ -91,7 +85,6 @@ getFormulaType Conjunction {} = ConjunctionType
 getFormulaType Implication {} = ImplicationType
 getFormulaType Negation {} = NegationType
 getFormulaType Variable {} = VariableType
-getFormulaType Absurdity {} = AbsurdityType
 
 instance Ord Formula where
   compare f1 f2
@@ -104,7 +97,7 @@ instance Show Formula where
   show (Implication _ lhs rhs) = "(" ++ show lhs ++ " -> " ++ show rhs ++ ")"
   show (Negation _ f) = "-" ++ show f
   show (Variable _ a) = a
-  show (Absurdity _) = "_|_"
+
 
 atoms :: Formula -> Set Atom
 atoms formula = atoms' [formula] Set.empty
@@ -113,6 +106,5 @@ atoms formula = atoms' [formula] Set.empty
     atoms' (h : t) result =
       case h of
         Variable _ a -> atoms' t $ Set.insert a result
-        Absurdity _ -> atoms' t $ Set.insert "_|_" result
         Negation _ f -> atoms' (f : t) result
         _other -> atoms' (lhs h : rhs h : t) result

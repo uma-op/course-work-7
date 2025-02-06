@@ -12,8 +12,8 @@ import Formula
 data Sequent = Sequent
   { usedContexts :: !(Set (Formula, Atom)),
     leftFocus :: !(Set Formula),
-    leftLabeled :: !(Map Atom [Formula]),
-    leftUnlabeled :: ![Formula],
+    leftLabeled :: !(Map Atom (Set Formula)),
+    leftUnlabeled :: !(Set Formula),
     rightFocusUsed :: !(Set Atom),
     rightFocus :: !(Set Atom),
     rightFormula :: !Formula
@@ -28,7 +28,7 @@ instance Show Sequent where
       ++ "} ** "
       ++ show (Map.toList $ leftLabeled s)
       ++ " ** "
-      ++ show (leftUnlabeled s)
+      ++ show (Set.toList $ leftUnlabeled s)
       ++ " => ["
       ++ show (Set.toList $ rightFocus s)
       ++ "] ** "
@@ -39,9 +39,31 @@ fromFormula formula =
   Sequent
     { usedContexts = Set.empty,
       leftFocus = Set.empty,
-      leftLabeled = Map.fromList $ List.map (,[]) (Set.toList $ atoms formula),
-      leftUnlabeled = [],
+      leftLabeled = Map.fromList $ List.map (,Set.empty) (Set.toList $ atoms formula),
+      leftUnlabeled = Set.empty,
       rightFocusUsed = Set.empty,
       rightFocus = Set.empty,
       rightFormula = formula
     }
+
+reduceToImplication :: Formula -> Sequent
+reduceToImplication formula = reduceToImplication' formula (fromFormula formula)
+  where
+    reduceToImplication' :: Formula -> Sequent -> Sequent
+    reduceToImplication' formula sequent =
+      case formula of
+        Variable {} -> fromFormula formula
+        Negation {} ->
+          let reduced = reduceToImplication' (operand formula) sequent
+           in reduced
+                { leftLabeled = Map.insert (atom absurdity) Set.empty (leftLabeled sequent),
+                  rightFormula = implication [rightFormula reduced, absurdity]
+                }
+        Implication {} ->
+          let reducedLhs = reduceToImplication' (lhs formula) sequent
+              reducedRhs = reduceToImplication' (rhs formula) sequent
+           in sequent
+                { leftLabeled = Map.union (leftLabeled reducedLhs) (leftLabeled reducedRhs),
+                  rightFormula = implication [rightFormula reducedLhs, rightFormula reducedRhs]
+                }
+        _otherwise -> sequent

@@ -7,14 +7,11 @@ import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
-import qualified Data.Sequence as Sequence
 import qualified Data.Set as Set
 import Formula
 import KripkeModel (KripkeModel (..))
 import Prover.DerivationTree
 import Prover.Sequent
-import Text.Pretty.Simple (pShow)
-import Data.Text.Lazy (unpack)
 
 buildCounterModel :: DerivationTree -> KripkeModel
 buildCounterModel tree@(DerivationTree {currentGoal = Nothing}) = undefined
@@ -53,7 +50,7 @@ buildDerivationTree formula =
     then Either.Right builded
     else Either.Left $ buildCounterModel builded
   where
-    builded = buildDerivationTree' $ fromSequent $ fromFormula formula
+    builded = buildDerivationTree' $ fromSequent $ reduceToImplication formula
     buildDerivationTree' = applyAxiom
       where
         applyAxiom tree =
