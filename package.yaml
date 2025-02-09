@@ -50,6 +50,7 @@ internal-libraries:
     - test-framework
     - test-framework-hunit
     - HUnit
+    - pretty-simple
 
 executables:
   course-work-exe:

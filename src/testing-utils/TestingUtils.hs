@@ -5,6 +5,7 @@ import Paths_course_work
 
 import Test.HUnit ((@?), AssertionPredicable(assertionPredicate))
 import qualified Data.Either as Either
+import Text.Pretty.Simple (pPrint)
 
 parseFromFile filename =
   do

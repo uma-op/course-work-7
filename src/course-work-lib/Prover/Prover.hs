@@ -8,6 +8,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
+import qualified Debug.Trace as Trace
 import Formula
 import KripkeModel (KripkeModel (..))
 import Prover.DerivationTree
@@ -18,7 +19,7 @@ buildCounterModel tree@(DerivationTree {currentGoal = Nothing}) = undefined
 buildCounterModel tree = model
   where
     failedGoalId = currentGoal tree
-    failedGoal = nodes tree Map.! Maybe.fromJust failedGoalId
+    failedGoal = goals tree Map.! Maybe.fromJust failedGoalId
     model =
       KripkeModel
         { worlds = Set.fromList listedWorlds,
@@ -38,7 +39,7 @@ buildCounterModel tree = model
               ]
         }
       where
-        listedWorlds = List.take ((2 +) $ Set.size (rightFocusUsed failedGoal)) [0..]
+        listedWorlds = List.take ((2 +) $ Set.size (rightFocusUsed failedGoal)) [0 ..]
         getAtoms = List.foldl getAtomsFoldingFunction []
         getAtomsFoldingFunction container element = case element of
           Variable _ a -> a : container
@@ -46,34 +47,35 @@ buildCounterModel tree = model
 
 buildDerivationTree :: Formula -> Either KripkeModel DerivationTree
 buildDerivationTree formula =
-  if Set.null $ goals builded
+  if Map.null $ goals builded
     then Either.Right builded
     else Either.Left $ buildCounterModel builded
   where
-    builded = buildDerivationTree' $ fromSequent $ reduceToImplication formula
+    builded = buildDerivationTree' $ fromSequent $ uncurry fromFormula $ reduceToImplication formula
     buildDerivationTree' = applyAxiom
       where
-        applyAxiom tree =
+        -- showCurrentGoal tree = show (nodes tree Map.! Maybe.fromJust (currentGoal tree)) ++ " " ++ show (Maybe.fromJust $ currentGoal tree)
+        applyAxiom tree = -- Trace.trace (showCurrentGoal tree) $
           case axiom tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyRight oldTree
 
-        applyRight tree =
+        applyRight tree = -- Trace.trace (showCurrentGoal tree) $
           case right tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyFocus oldTree
 
-        applyFocus tree =
+        applyFocus tree = -- Trace.trace (showCurrentGoal tree) $
           case focus tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyLeft oldTree
 
-        applyLeft tree =
+        applyLeft tree = -- Trace.trace (showCurrentGoal tree) $
           case left tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> applyRestart oldTree
 
-        applyRestart tree =
+        applyRestart tree = -- Trace.trace (showCurrentGoal tree) $
           case restart tree of
             (newTree, True) -> applyAxiom newTree
             (oldTree, False) -> oldTree

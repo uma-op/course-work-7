@@ -6,56 +6,67 @@ import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Debug.Trace as Trace
 import qualified Formula
 import Prover.Sequent
 
 data RuleType = Axiom | Focus | Restart | Right | Left deriving (Show)
 
 data DerivationTree = DerivationTree
-  { edges :: !(Map (Int, Int) RuleType),
-    nodes :: !(Map Int Sequent),
-    goals :: !(Set Int),
+  { goals :: !(Map Int Sequent),
     lastNodeId :: !Int,
     currentGoal :: !(Maybe Int)
   }
   deriving (Show)
 
+-- traceCurrentGoal :: DerivationTree -> String
+-- traceCurrentGoal tree = List.concatMap showEdge chain ++ show (nodes tree Map.! 0) ++ "\n"
+--   where
+--     showEdge e = show (edges tree Map.! e) ++ " | " ++ show (nodes tree Map.! snd e) ++ "\n"
+--     keys = Map.keys $ edges tree
+--     findChain :: [(Int, Int)] -> Int -> [(Int, Int)]
+--     findChain links lst = List.reverse (findChain' links lst [])
+--       where
+--         findChain' links' lst' acc' =
+--           let (newLasts, newLinks) = List.partition ((== lst') . snd) links'
+--            in if List.null newLasts then acc' else findChain' newLinks (fst $ head newLasts) (head newLasts : acc')
+--     chain = findChain keys (Maybe.fromJust $ currentGoal tree)
+
 fromSequent :: Sequent -> DerivationTree
 fromSequent s =
   DerivationTree
-    { edges = Map.empty,
-      nodes = Map.singleton 0 s,
-      goals = Set.singleton 0,
+    { goals = Map.singleton 0 s,
       lastNodeId = 0,
       currentGoal = Just 0
     }
 
-addSequent :: Int -> Sequent -> RuleType -> DerivationTree -> DerivationTree
-addSequent goalId s rt tree =
+addSequent :: Sequent -> DerivationTree -> DerivationTree
+addSequent s tree =
   DerivationTree
-    { edges = Map.insert (goalId, lastNodeId tree + 1) rt $ edges tree,
-      nodes = Map.insert (lastNodeId tree + 1) s $ nodes tree,
-      goals = Set.insert (lastNodeId tree + 1) $ Set.delete goalId $ goals tree,
+    { goals = Map.insert (lastNodeId tree + 1) s (goals tree),
       lastNodeId = lastNodeId tree + 1,
       currentGoal = Just $ lastNodeId tree + 1
     }
+
+deleteSequent :: Int -> DerivationTree -> DerivationTree
+deleteSequent goalId tree =
+  tree
+    { goals = newGoals,
+      currentGoal = if Map.null newGoals then Nothing else Just $ fst $ Map.findMin newGoals
+    }
+  where
+    newGoals = Map.delete goalId $ goals tree
 
 axiom :: DerivationTree -> (DerivationTree, Bool)
 axiom tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
 axiom tree =
   if rightFormula goal `Set.member` leftFocus goal || Formula.absurdity `Set.member` leftFocus goal
     then
-      let newGoals = Set.delete goalId (goals tree)
-          newTree =
-            tree
-              { goals = newGoals,
-                currentGoal = if Set.null newGoals then Nothing else Just $ Set.findMin newGoals
-              }
-       in (newTree, True)
+      (deleteSequent goalId tree, True)
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal = nodes tree Map.! goalId
+    goal = Maybe.fromMaybe (error "Axiom. No such goal") $ goalId `Map.lookup` goals tree
 
 focus :: DerivationTree -> (DerivationTree, Bool)
 focus tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -63,12 +74,12 @@ focus tree =
   if not (List.all (`Set.member` leftFocus goal) (leftUnlabeled goal))
     then
       let newSequent = goal {leftFocus = leftUnlabeled goal}
-          newTree = addSequent goalId newSequent Prover.DerivationTree.Focus tree
+          newTree = (addSequent newSequent . deleteSequent goalId) tree
        in (newTree, True)
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal = nodes tree Map.! goalId
+    goal = goals tree Map.! goalId
 
 restart :: DerivationTree -> (DerivationTree, Bool)
 restart tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -90,15 +101,19 @@ restart tree =
               }
             where
               (used, unused) = Set.deleteFindMin $ rightFocus goal
-              unlabeled = leftLabeled goal Map.! used
+              unlabeled = case used `Map.lookup` leftLabeled goal of
+                Just v -> v
+                Nothing -> error "Restart. No such goal"
 
-          newTree = addSequent goalId newSequent Prover.DerivationTree.Restart tree
+          newTree = (addSequent newSequent . deleteSequent goalId) tree
        in (newTree, True)
     else
       (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal = nodes tree Map.! goalId
+    goal = case goalId `Map.lookup` goals tree of
+      Just v -> v
+      Nothing -> error "Restart. No such goal"
 
 right :: DerivationTree -> (DerivationTree, Bool)
 right tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -111,12 +126,12 @@ right tree =
               { leftUnlabeled = Set.insert lhs $ leftUnlabeled goal, -- TODO: check the append ordering
                 rightFormula = rhs
               }
-          newTree = addSequent goalId newSequent Prover.DerivationTree.Right tree
+          newTree = (addSequent newSequent . deleteSequent goalId) tree
        in (newTree, True)
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal = nodes tree Map.! goalId
+    goal = goals tree Map.! goalId
 
 left :: DerivationTree -> (DerivationTree, Bool)
 left tree@(DerivationTree {currentGoal = Nothing}) = (tree, False)
@@ -146,20 +161,31 @@ left tree =
                 leftUnlabeled = Set.insert rhs $ leftUnlabeled goal
               }
           newTree =
-            ( addSequent goalId newSequentLeft Prover.DerivationTree.Left
-                . addSequent goalId newSequentRight Prover.DerivationTree.Left
+            ( addSequent newSequentLeft
+                . addSequent newSequentRight
+                . deleteSequent goalId
             )
               tree
        in (newTree, True)
     else (tree, False)
   where
     goalId = Maybe.fromJust $ currentGoal tree
-    goal = nodes tree Map.! goalId
-    leftmost = List.find leftmostFindFunc (leftFocus goal)
+    goal = case goalId `Map.lookup` goals tree of
+      Just v -> v
+      Nothing -> error "There is no such goal"
+
+    leftmost = List.foldl leftmostFindFunc Nothing (leftFocus goal)
       where
-        leftmostFindFunc f
-          | Formula.getFormulaType f == Formula.ImplicationType =
-              not $
-                (f, Formula.atom $ rightFormula goal)
-                  `Set.member` usedContexts goal
-          | otherwise = False
+        leftmostFindFunc m f
+          | Formula.getFormulaType f == Formula.ImplicationType
+              && not ((f, Formula.atom $ rightFormula goal) `Set.member` usedContexts goal) =
+              case m of
+                Nothing -> Just f
+                Just m' -> if Formula.length f > Formula.length m' then Just f else m
+          | otherwise = m
+
+--          | Formula.getFormulaType f == Formula.ImplicationType =
+--              not $
+--                (f, Formula.atom $ rightFormula goal)
+--                  `Set.member` usedContexts goal
+--          | otherwise = False
